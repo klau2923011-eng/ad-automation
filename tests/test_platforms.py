@@ -36,7 +36,9 @@ def test_spi_updates_binding_and_rejects_bad_signature(tmp_path, video_bytes):
         body = json.dumps({"event_id": "evt-1", "remote_id": binding["remoteId"], "status": "approved"}, separators=(",", ":")).encode()
         signature = hmac.new(b"dev-secret", body, hashlib.sha256).hexdigest()
         good = client.post("/api/spi/mock", content=body, headers={"x-signature": signature})
+        repeated = client.post("/api/spi/mock", content=body, headers={"x-signature": signature})
         bad = client.post("/api/spi/mock", content=body, headers={"x-signature": "bad"})
     assert good.status_code == 200
     assert good.json()["status"] == "approved"
+    assert repeated.json()["duplicate"] is True
     assert bad.status_code == 401

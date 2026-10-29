@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -84,5 +84,30 @@ class PlatformBinding(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
+
+
+class Alert(Base):
+    __tablename__ = "alerts"
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True)
+    source: Mapped[str] = mapped_column(String(32), index=True)
+    object_id: Mapped[str] = mapped_column(String(64), index=True)
+    level: Mapped[str] = mapped_column(String(16), default="error")
+    message: Mapped[str] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(String(16), default="open")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+
+class PlatformEvent(Base):
+    __tablename__ = "platform_events"
+    __table_args__ = (UniqueConstraint("platform", "external_event_id", name="uq_platform_event"),)
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True)
+    platform: Mapped[str] = mapped_column(String(32))
+    external_event_id: Mapped[str] = mapped_column(String(128))
+    binding_id: Mapped[str] = mapped_column(ForeignKey("platform_bindings.id"), index=True)
+    status: Mapped[str] = mapped_column(String(32))
+    raw_json: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
 

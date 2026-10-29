@@ -15,3 +15,5 @@ uploads/
 outputs/
 .vscode/
 .idea/
+.playwright-cli/
+output/playwright/

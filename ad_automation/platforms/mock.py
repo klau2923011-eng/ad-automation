@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 import os
+import json
 from typing import Mapping
 
 from ad_automation.platforms.base import CallbackEvent, RemoteAssetStatus, UploadResult
@@ -28,3 +29,6 @@ class MockPlatform:
 
     def normalize_callback(self, payload: dict, headers: Mapping[str, str]) -> CallbackEvent:
         return CallbackEvent(str(payload["event_id"]), str(payload["remote_id"]), str(payload["status"]), payload)
+
+    def sign_callback(self, body: bytes) -> str:
+        return hmac.new(self.secret, body, hashlib.sha256).hexdigest()

@@ -2,12 +2,17 @@ from __future__ import annotations
 
 import json
 import uuid
+import json
+import hmac
 
 from fastapi import APIRouter, HTTPException, Request
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ad_automation.models import Asset, PlatformBinding
 from ad_automation.platforms.mock import MockPlatform
+from ad_automation.services.sync import apply_callback
+from ad_automation.models import PlatformEvent
 
 router = APIRouter(prefix="/api/platforms", tags=["platforms"])
 
@@ -25,3 +30,26 @@ def sync_asset(request: Request, platform: str, payload: dict) -> dict:
         session.add(binding)
         session.commit()
         return {"id": binding.id, "assetId": asset.id, "platform": platform, "remoteId": result.remote_id, "status": result.status}
+
+
+@router.get("")
+def list_bindings(request: Request) -> list[dict]:
+    with Session(request.app.state.database_engine) as session:
+        return [{"id": b.id, "assetId": b.asset_id, "platform": b.platform, "remoteId": b.remote_id, "status": b.status} for b in session.scalars(select(PlatformBinding).order_by(PlatformBinding.created_at.desc())).all()]
+
+
+@router.post("/mock/{binding_id}/simulate")
+def simulate_callback(request: Request, binding_id: str, payload: dict) -> dict:
+    status = payload.get("status")
+    if status not in {"approved", "rejected"}:
+        raise HTTPException(400, "状态必须是 approved 或 rejected")
+    with Session(request.app.state.database_engine) as session:
+        binding = session.get(PlatformBinding, binding_id)
+        if binding is None:
+            raise HTTPException(404, "平台绑定不存在")
+        adapter = MockPlatform()
+        event_body = json.dumps({"event_id": uuid.uuid4().hex, "remote_id": binding.remote_id, "status": status}, separators=(",", ":")).encode()
+        event = adapter.normalize_callback(json.loads(event_body), {})
+        apply_callback(session, "mock", event)
+        session.commit()
+        return {"id": binding.id, "status": status}

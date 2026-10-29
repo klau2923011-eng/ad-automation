@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from ad_automation.media.ffmpeg import process_step
 from ad_automation.models import Asset, JobStep, ProcessingJob
 from ad_automation.services.jobs import transition_job
+from ad_automation.services.alerts import create_alert
 
 router = APIRouter(prefix="/api/jobs", tags=["jobs"])
 
@@ -38,6 +39,7 @@ def _execute_job(request: Request, job_id: str) -> None:
         except Exception as exc:
             job.status = "failed"
             job.error_summary = str(exc)
+            create_alert(session, "job", job.id, str(exc))
         session.commit()
 
 
