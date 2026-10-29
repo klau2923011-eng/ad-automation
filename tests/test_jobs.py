@@ -46,7 +46,24 @@ def test_create_job_for_uploaded_asset(tmp_path):
         asset = client.post("/api/assets", files={"file": ("clip.mp4", _valid_video(tmp_path), "video/mp4")}).json()
         response = client.post("/api/jobs", json={"assetId": asset["id"], "steps": []})
     assert response.status_code == 200
-    assert response.json()["status"] == "pending"
+    assert response.json()["status"] in {"pending", "succeeded"}
+
+
+def test_trim_job_produces_a_new_video_asset(tmp_path):
+    app = create_app(Settings(data_dir=tmp_path))
+    with TestClient(app) as client:
+        asset = client.post("/api/assets", files={"file": ("clip.mp4", _valid_video(tmp_path), "video/mp4")}).json()
+        created = client.post(
+            "/api/jobs",
+            json={"assetId": asset["id"], "steps": [{"kind": "trim", "params": {"start": 0, "end": 0.15}}]},
+        )
+        job_id = created.json()["id"]
+        detail = client.get(f"/api/jobs/{job_id}")
+
+    assert detail.status_code == 200
+    assert detail.json()["status"] == "succeeded"
+    assert detail.json()["outputAssetId"]
+    assert detail.json()["steps"][0]["status"] == "succeeded"
 
 
 def _valid_video(tmp_path):

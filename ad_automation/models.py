@@ -14,6 +14,7 @@ class Asset(Base):
     __tablename__ = "assets"
 
     id: Mapped[str] = mapped_column(String(32), primary_key=True)
+    parent_id: Mapped[str | None] = mapped_column(ForeignKey("assets.id"), nullable=True)
     filename: Mapped[str] = mapped_column(String(255))
     path: Mapped[str] = mapped_column(String(1024))
     media_type: Mapped[str] = mapped_column(String(100))
@@ -38,6 +39,7 @@ class ProcessingJob(Base):
     status: Mapped[str] = mapped_column(String(32), default="pending")
     attempts: Mapped[int] = mapped_column(Integer, default=0)
     max_attempts: Mapped[int] = mapped_column(Integer, default=3)
+    output_asset_id: Mapped[str | None] = mapped_column(ForeignKey("assets.id"), nullable=True)
     error_summary: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
