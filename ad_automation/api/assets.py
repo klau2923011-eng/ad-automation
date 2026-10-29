@@ -17,6 +17,7 @@ def _payload(asset: Asset) -> dict:
         "mediaType": asset.media_type,
         "sizeBytes": asset.size_bytes,
         "sha256": asset.sha256,
+        "perceptualHash": asset.perceptual_hash,
         "status": asset.status,
         "probeStatus": asset.probe_status,
         "durationSeconds": asset.duration_seconds,

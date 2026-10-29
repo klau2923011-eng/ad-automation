@@ -9,6 +9,7 @@ from sqlalchemy import Engine
 from ad_automation.config import Settings
 from ad_automation.db import create_database_engine, initialize_database
 from ad_automation.api.assets import router as assets_router
+from ad_automation.api.jobs import router as jobs_router
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -25,6 +26,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.settings = app_settings
     app.state.database_engine = engine
     app.include_router(assets_router)
+    app.include_router(jobs_router)
 
     @app.get("/api/health")
     def health() -> dict[str, bool | str]:

@@ -10,6 +10,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ad_automation.media.probe import probe_video
+from ad_automation.media.fingerprint import perceptual_fingerprint
 from ad_automation.models import Asset
 
 
@@ -53,6 +54,10 @@ def store_asset(
             metadata = probe_video(target)
         except (OSError, subprocess.SubprocessError, ValueError) as exc:
             raise ValueError("无法识别视频内容，请确认文件有效") from exc
+        try:
+            perceptual_hash = perceptual_fingerprint(target)
+        except (OSError, subprocess.SubprocessError, RuntimeError, ValueError):
+            perceptual_hash = None
         if metadata is None:
             raise ValueError("无法识别视频内容，请确认文件有效")
         asset = Asset(
@@ -62,6 +67,7 @@ def store_asset(
             media_type=media_type or "application/octet-stream",
             size_bytes=size_bytes,
             sha256=sha256,
+            perceptual_hash=perceptual_hash,
             status="duplicate" if duplicate else "ready",
             probe_status="available" if metadata else "unavailable",
             duration_seconds=metadata["duration_seconds"] if metadata else None,

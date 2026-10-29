@@ -5,6 +5,7 @@ from fastapi.testclient import TestClient
 
 from ad_automation.app import create_app
 from ad_automation.config import Settings
+from ad_automation.media.fingerprint import perceptual_fingerprint
 
 
 def _video_bytes(tmp_path):
@@ -33,6 +34,8 @@ def test_uploads_video_and_marks_exact_duplicate(tmp_path):
     assert first.json()["status"] == "ready"
     assert second.json()["status"] == "duplicate"
     assert first.json()["sha256"] == second.json()["sha256"]
+    assert len(first.json()["perceptualHash"]) == 16
+    assert first.json()["perceptualHash"] == second.json()["perceptualHash"]
     assert first.json()["probeStatus"] == "available"
     assert first.json()["width"] == 32
     assert first.json()["height"] == 32
@@ -54,3 +57,14 @@ def test_rejects_invalid_video_bytes(tmp_path):
             files={"file": ("fake.mp4", b"not an mp4", "video/mp4")},
         )
     assert response.status_code == 400
+
+
+def test_perceptual_fingerprint_is_stable_for_same_video(tmp_path):
+    video = tmp_path / "clip.mp4"
+    video.write_bytes(_video_bytes(tmp_path))
+
+    first = perceptual_fingerprint(video)
+    second = perceptual_fingerprint(video)
+
+    assert len(first) == 16
+    assert first == second
