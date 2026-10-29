@@ -10,6 +10,8 @@ from ad_automation.config import Settings
 from ad_automation.db import create_database_engine, initialize_database
 from ad_automation.api.assets import router as assets_router
 from ad_automation.api.jobs import router as jobs_router
+from ad_automation.api.platforms import router as platforms_router
+from ad_automation.api.spi import router as spi_router
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -27,6 +29,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.database_engine = engine
     app.include_router(assets_router)
     app.include_router(jobs_router)
+    app.include_router(platforms_router)
+    app.include_router(spi_router)
 
     @app.get("/api/health")
     def health() -> dict[str, bool | str]:
