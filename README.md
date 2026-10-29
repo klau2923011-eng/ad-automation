@@ -4,7 +4,7 @@
 
 ## 运行
 
-需要 Python 3.11+；视频处理阶段还需要 FFmpeg/ffprobe。
+需要 Python 3.11+ 和 FFmpeg/ffprobe。Windows 可通过 `winget install --id Gyan.FFmpeg.Shared` 安装；应用会自动发现 WinGet 安装目录，也可用 `AD_AUTOMATION_FFMPEG` 和 `AD_AUTOMATION_FFPROBE` 指定路径。
 
 ```powershell
 pip install -r requirements.txt

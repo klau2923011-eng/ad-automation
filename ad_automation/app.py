@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import shutil
 from contextlib import asynccontextmanager
 from typing import AsyncIterator
 
@@ -29,7 +28,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     @app.get("/api/health")
     def health() -> dict[str, bool | str]:
-        ffmpeg_ready = bool(shutil.which("ffmpeg") and shutil.which("ffprobe"))
+        ffmpeg_ready = bool(app_settings.ffmpeg_path and app_settings.ffprobe_path)
         return {
             "ready": True,
             "database": "ok" if app_settings.database_path.is_file() else "error",

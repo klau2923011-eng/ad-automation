@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import subprocess
 import uuid
 from pathlib import Path
 from typing import BinaryIO
@@ -48,7 +49,12 @@ def store_asset(
 
         sha256 = digest.hexdigest()
         duplicate = session.scalar(select(Asset.id).where(Asset.sha256 == sha256))
-        metadata = probe_video(target)
+        try:
+            metadata = probe_video(target)
+        except (OSError, subprocess.SubprocessError, ValueError) as exc:
+            raise ValueError("无法识别视频内容，请确认文件有效") from exc
+        if metadata is None:
+            raise ValueError("无法识别视频内容，请确认文件有效")
         asset = Asset(
             id=asset_id,
             filename=safe_filename[:255],
