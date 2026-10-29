@@ -59,11 +59,27 @@ def test_trim_job_produces_a_new_video_asset(tmp_path):
         )
         job_id = created.json()["id"]
         detail = client.get(f"/api/jobs/{job_id}")
+        assert detail.status_code == 200
+        assert detail.json()["status"] == "succeeded"
+        assert detail.json()["outputAssetId"]
+        assert detail.json()["steps"][0]["status"] == "succeeded"
+        assets = client.get("/api/assets").json()
+    output = next(asset for asset in assets if asset["id"] == detail.json()["outputAssetId"])
+    assert output["parentId"] == asset["id"]
+    assert len(output["sha256"]) == 64
+    assert len(output["perceptualHash"]) == 16
 
-    assert detail.status_code == 200
-    assert detail.json()["status"] == "succeeded"
-    assert detail.json()["outputAssetId"]
-    assert detail.json()["steps"][0]["status"] == "succeeded"
+
+def test_failed_job_can_be_retried(tmp_path, video_bytes):
+    app = create_app(Settings(data_dir=tmp_path))
+    with TestClient(app) as client:
+        asset = client.post("/api/assets", files={"file": ("clip.mp4", video_bytes, "video/mp4")}).json()
+        job = client.post("/api/jobs", json={"assetId": asset["id"], "steps": [{"kind": "bad-step", "params": {}}]}).json()
+        retried = client.post(f"/api/jobs/{job['id']}/retry")
+        details = client.get(f"/api/jobs/{job['id']}").json()
+    assert retried.status_code == 200
+    assert details["status"] == "failed"
+    assert details["attempts"] == 2
 
 
 def _valid_video(tmp_path):

@@ -10,7 +10,9 @@ from sqlalchemy.orm import Session
 
 from ad_automation.media.ffmpeg import process_step
 from ad_automation.models import Asset, JobStep, ProcessingJob
-from ad_automation.services.jobs import transition_job
+from ad_automation.services.jobs import transition_job, retry_failed_job
+from ad_automation.media.fingerprint import perceptual_fingerprint, sha256_file
+from ad_automation.media.probe import probe_video
 from ad_automation.services.alerts import create_alert
 
 router = APIRouter(prefix="/api/jobs", tags=["jobs"])
@@ -32,7 +34,8 @@ def _execute_job(request: Request, job_id: str) -> None:
                 step.output_path = str(output)
                 current = output
             if steps:
-                output_asset = Asset(id=uuid.uuid4().hex, parent_id=job.asset_id, filename=f"{job.id}.mp4", path=str(current), media_type="video/mp4", size_bytes=current.stat().st_size, sha256="", status="ready", probe_status="available")
+                metadata = probe_video(current) or {}
+                output_asset = Asset(id=uuid.uuid4().hex, parent_id=job.asset_id, filename=f"{job.id}.mp4", path=str(current), media_type="video/mp4", size_bytes=current.stat().st_size, sha256=sha256_file(current), perceptual_hash=perceptual_fingerprint(current), status="ready", probe_status="available", duration_seconds=metadata.get("duration_seconds"), width=metadata.get("width"), height=metadata.get("height"))
                 session.add(output_asset)
                 job.output_asset_id = output_asset.id
             transition_job(job, "succeeded")
@@ -75,3 +78,19 @@ def get_job(request: Request, job_id: str) -> dict:
             raise HTTPException(404, "任务不存在")
         steps = session.scalars(select(JobStep).where(JobStep.job_id == job.id).order_by(JobStep.position)).all()
         return {"id": job.id, "assetId": job.asset_id, "status": job.status, "attempts": job.attempts, "outputAssetId": job.output_asset_id, "error": job.error_summary, "steps": [{"kind": s.kind, "status": s.status, "outputPath": s.output_path, "error": s.error_summary} for s in steps]}
+
+
+@router.post("/{job_id}/retry")
+def retry_job(request: Request, background_tasks: BackgroundTasks, job_id: str) -> dict:
+    with Session(request.app.state.database_engine) as session:
+        job = session.get(ProcessingJob, job_id)
+        if job is None:
+            raise HTTPException(404, "任务不存在")
+        try:
+            retry_failed_job(job)
+        except ValueError as exc:
+            raise HTTPException(409, str(exc)) from exc
+        attempts = job.attempts
+        session.commit()
+    background_tasks.add_task(_execute_job, request, job_id)
+    return {"id": job_id, "status": "pending", "attempts": attempts}

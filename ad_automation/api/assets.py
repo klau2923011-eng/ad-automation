@@ -13,6 +13,7 @@ router = APIRouter(prefix="/api/assets", tags=["assets"])
 def _payload(asset: Asset) -> dict:
     return {
         "id": asset.id,
+        "parentId": asset.parent_id,
         "filename": asset.filename,
         "mediaType": asset.media_type,
         "sizeBytes": asset.size_bytes,
