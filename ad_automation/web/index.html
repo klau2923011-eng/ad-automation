@@ -1,18 +1,9 @@
 <!doctype html>
-<html lang="zh-CN">
-<head>
-  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>素材流水线</title><link rel="icon" href="data:,"><link rel="stylesheet" href="/web/styles.css">
-</head>
-<body>
-  <header class="topbar"><div><p class="kicker">AD OPERATIONS / LOCAL DEMO</p><h1>素材流水线</h1></div><div class="health"><span id="health-dot"></span><span id="health-text">检查服务中</span></div></header>
-  <main class="shell">
-    <nav class="tabs" aria-label="主要视图"><button class="tab active" data-view="assets">素材库</button><button class="tab" data-view="jobs">处理任务</button><button class="tab" data-view="platforms">平台状态</button><button class="tab" data-view="alerts">异常中心 <span id="alert-count" class="count">0</span></button></nav>
-    <section id="view-assets" class="view active"><div class="view-head"><div><h2>素材库</h2><p>上传、指纹检测并挑选进入处理队列的素材。</p></div><label class="upload"><span>上传视频</span><input id="file" type="file" accept="video/mp4,video/quicktime,video/webm"></label></div><div class="toolbar"><label for="process-kind">处理方式</label><select id="process-kind"><option value="encode">标准转码</option><option value="enhance">画质增强</option><option value="trim">裁切前 1 秒</option><option value="concat">片头片尾拼接</option></select></div><div id="asset-list" class="table-wrap"></div></section>
-    <section id="view-jobs" class="view"><div class="view-head"><div><h2>处理任务</h2><p>FFmpeg 任务在本地后台执行，产物写入隔离目录。</p></div><button id="refresh-jobs" class="button secondary">刷新任务</button></div><div id="job-list" class="table-wrap"></div></section>
-    <section id="view-platforms" class="view"><div class="view-head"><div><h2>平台状态</h2><p>当前使用 Mock 平台验证同步和 SPI 回调契约。</p></div></div><div id="platform-list" class="platform-grid"></div></section>
-    <section id="view-alerts" class="view"><div class="view-head"><div><h2>异常中心</h2><p>失败任务、平台拒绝和签名错误会在这里留下可追溯记录。</p></div><button id="refresh-alerts" class="button secondary">刷新告警</button></div><div id="alert-list" class="table-wrap"></div></section>
-  </main>
-  <div id="toast" role="status" aria-live="polite"></div>
-  <script src="/web/app.js"></script>
-</body></html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>素材流水线</title><link rel="icon" href="data:,"><link rel="stylesheet" href="/web/styles.css"></head>
+<body><header class="topbar"><div><h1>素材流水线</h1><p>广告素材处理与投放状态工作台</p></div><div class="health"><span id="health-dot"></span><span id="health-text">检查服务中</span></div></header>
+<main class="shell"><nav class="tabs" aria-label="主要视图"><button class="tab active" data-view="assets">素材库 <span id="asset-count" class="tab-count">0</span></button><button class="tab" data-view="jobs">处理任务 <span id="job-count" class="tab-count">0</span></button><button class="tab" data-view="platforms">平台状态</button><button class="tab" data-view="alerts">异常中心 <span id="alert-count" class="count">0</span></button></nav>
+<section id="view-assets" class="view active"><div class="view-head"><div><h2>素材库</h2><p>上传视频、查看指纹，并选择素材进入处理队列。</p></div><label class="upload" id="upload-zone"><span>上传视频</span><input id="file" type="file" accept="video/mp4,video/quicktime,video/webm"></label></div><div class="toolbar"><label class="search"><span>搜索素材</span><input id="asset-search" type="search" placeholder="按文件名或 SHA-256 搜索"></label><label>状态<select id="asset-filter"><option value="all">全部</option><option value="ready">可用</option><option value="duplicate">重复</option></select></label><label>处理方式<select id="process-kind"><option value="encode">标准转码</option><option value="enhance">画质增强</option><option value="trim">裁切前 1 秒</option><option value="concat">片头片尾拼接</option></select></label><button id="refresh-assets" class="button secondary">刷新</button></div><div id="upload-progress" class="progress" hidden><span></span></div><div id="asset-list" class="table-wrap" aria-live="polite"></div></section>
+<section id="view-jobs" class="view"><div class="view-head"><div><h2>处理任务</h2><p>任务在本地后台执行，产物写入隔离目录。</p></div><button id="refresh-jobs" class="button secondary">刷新任务</button></div><div id="job-list" class="table-wrap" aria-live="polite"></div></section>
+<section id="view-platforms" class="view"><div class="view-head"><div><h2>平台状态</h2><p>使用 Mock 平台验证同步和 SPI 回调契约。</p></div><button id="refresh-platforms" class="button secondary">刷新状态</button></div><div id="platform-list" class="platform-grid"></div></section>
+<section id="view-alerts" class="view"><div class="view-head"><div><h2>异常中心</h2><p>失败任务、平台拒绝和签名错误会在这里留下可追溯记录。</p></div><button id="refresh-alerts" class="button secondary">刷新告警</button></div><div id="alert-list" class="table-wrap" aria-live="polite"></div></section></main>
+<aside id="detail-panel" class="detail-panel" aria-hidden="true"><div class="detail-head"><h2 id="detail-title">详情</h2><button id="close-detail" class="icon-button" aria-label="关闭详情">×</button></div><div id="detail-content"></div></aside><div id="toast" role="status" aria-live="polite"></div><script src="/web/app.js"></script></body></html>
