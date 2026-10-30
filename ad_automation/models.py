@@ -74,6 +74,7 @@ class Event(Base):
 
 class PlatformBinding(Base):
     __tablename__ = "platform_bindings"
+    __table_args__ = (UniqueConstraint("asset_id", "platform", name="uq_asset_platform_binding"),)
 
     id: Mapped[str] = mapped_column(String(32), primary_key=True)
     asset_id: Mapped[str] = mapped_column(ForeignKey("assets.id"), index=True)

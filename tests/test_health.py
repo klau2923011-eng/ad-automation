@@ -41,3 +41,12 @@ def test_discovers_ffmpeg_from_winget_install_directory(monkeypatch, tmp_path):
     monkeypatch.setattr("ad_automation.config.shutil.which", lambda _: None)
 
     assert find_media_binary("ffprobe") == str(binary)
+
+
+def test_settings_reads_spi_secret_from_environment(tmp_path, monkeypatch):
+    monkeypatch.setenv("AD_AUTOMATION_DATA_DIR", str(tmp_path))
+    monkeypatch.setenv("AD_AUTOMATION_SPI_SECRET", "test-secret")
+
+    settings = Settings.from_env()
+
+    assert settings.spi_secret == "test-secret"

@@ -2,8 +2,6 @@ from __future__ import annotations
 
 import json
 import uuid
-import json
-import hmac
 
 from fastapi import APIRouter, HTTPException, Request
 from sqlalchemy import select
@@ -12,7 +10,6 @@ from sqlalchemy.orm import Session
 from ad_automation.models import Asset, PlatformBinding
 from ad_automation.platforms.mock import MockPlatform
 from ad_automation.services.sync import apply_callback
-from ad_automation.models import PlatformEvent
 
 router = APIRouter(prefix="/api/platforms", tags=["platforms"])
 
@@ -25,7 +22,10 @@ def sync_asset(request: Request, platform: str, payload: dict) -> dict:
         asset = session.get(Asset, payload.get("assetId"))
         if asset is None:
             raise HTTPException(404, "素材不存在")
-        result = MockPlatform().upload_asset(asset.path, asset.id)
+        existing = session.scalar(select(PlatformBinding).where(PlatformBinding.asset_id == asset.id, PlatformBinding.platform == platform))
+        if existing is not None:
+            return {"id": existing.id, "assetId": asset.id, "platform": platform, "remoteId": existing.remote_id, "status": existing.status}
+        result = MockPlatform(request.app.state.settings.spi_secret).upload_asset(asset.path, asset.id)
         binding = PlatformBinding(id=uuid.uuid4().hex, asset_id=asset.id, platform=platform, remote_id=result.remote_id, status=result.status, raw_json=json.dumps(result.raw))
         session.add(binding)
         session.commit()
@@ -47,9 +47,9 @@ def simulate_callback(request: Request, binding_id: str, payload: dict) -> dict:
         binding = session.get(PlatformBinding, binding_id)
         if binding is None:
             raise HTTPException(404, "平台绑定不存在")
-        adapter = MockPlatform()
-        event_body = json.dumps({"event_id": uuid.uuid4().hex, "remote_id": binding.remote_id, "status": status}, separators=(",", ":")).encode()
+        adapter = MockPlatform(request.app.state.settings.spi_secret)
+        event_body = json.dumps({"event_id": payload.get("event_id") or uuid.uuid4().hex, "remote_id": binding.remote_id, "status": status}, separators=(",", ":")).encode()
         event = adapter.normalize_callback(json.loads(event_body), {})
-        apply_callback(session, "mock", event)
+        applied = apply_callback(session, "mock", event)
         session.commit()
-        return {"id": binding.id, "status": status}
+        return {"id": binding.id, "status": status, "eventId": event.external_event_id, "duplicate": not applied}

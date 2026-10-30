@@ -15,13 +15,15 @@ router = APIRouter(prefix="/api/spi", tags=["spi"])
 
 @router.post("/{platform}")
 async def receive_spi(request: Request, platform: str) -> dict:
+    if platform != "mock":
+        raise HTTPException(400, "当前 MVP 仅支持 mock 平台")
     body = await request.body()
     try:
         payload = json.loads(body)
     except ValueError as exc:
         raise HTTPException(400, "SPI JSON 无效") from exc
-    adapter = MockPlatform()
-    if platform != "mock" or not adapter.verify_callback(body, request.headers):
+    adapter = MockPlatform(request.app.state.settings.spi_secret)
+    if not adapter.verify_callback(body, request.headers):
         with Session(request.app.state.database_engine) as session:
             create_alert(session, "spi", "signature", "SPI 签名无效")
             session.commit()

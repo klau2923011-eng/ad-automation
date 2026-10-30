@@ -22,6 +22,7 @@ def find_media_binary(name: str) -> str | None:
 @dataclass(frozen=True)
 class Settings:
     data_dir: Path
+    spi_secret: str = "dev-secret"
 
     def __post_init__(self) -> None:
         resolved = self.data_dir.expanduser().resolve()
@@ -43,4 +44,4 @@ class Settings:
     @classmethod
     def from_env(cls) -> Settings:
         data_dir = Path(os.getenv("AD_AUTOMATION_DATA_DIR", PROJECT_ROOT / "ad_automation_data"))
-        return cls(data_dir=data_dir)
+        return cls(data_dir=data_dir, spi_secret=os.getenv("AD_AUTOMATION_SPI_SECRET", "dev-secret"))

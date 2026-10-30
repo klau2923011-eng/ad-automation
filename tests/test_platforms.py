@@ -42,3 +42,30 @@ def test_spi_updates_binding_and_rejects_bad_signature(tmp_path, video_bytes):
     assert good.json()["status"] == "approved"
     assert repeated.json()["duplicate"] is True
     assert bad.status_code == 401
+
+
+def test_repeated_sync_reuses_existing_binding(tmp_path, video_bytes):
+    app = create_app(Settings(data_dir=tmp_path))
+    with TestClient(app) as client:
+        asset = client.post("/api/assets", files={"file": ("clip.mp4", video_bytes, "video/mp4")}).json()
+        first = client.post("/api/platforms/mock/sync", json={"assetId": asset["id"]}).json()
+        second = client.post("/api/platforms/mock/sync", json={"assetId": asset["id"]}).json()
+        bindings = client.get("/api/platforms").json()
+
+    assert first["id"] == second["id"]
+    assert len(bindings) == 1
+
+
+def test_simulated_callback_replay_is_idempotent(tmp_path, video_bytes):
+    app = create_app(Settings(data_dir=tmp_path))
+    with TestClient(app) as client:
+        asset = client.post("/api/assets", files={"file": ("clip.mp4", video_bytes, "video/mp4")}).json()
+        binding = client.post("/api/platforms/mock/sync", json={"assetId": asset["id"]}).json()
+        payload = {"status": "rejected", "event_id": "evt-replay"}
+        first = client.post(f"/api/platforms/mock/{binding['id']}/simulate", json=payload)
+        replay = client.post(f"/api/platforms/mock/{binding['id']}/simulate", json=payload)
+        alerts = client.get("/api/alerts").json()
+
+    assert first.json()["duplicate"] is False
+    assert replay.json()["duplicate"] is True
+    assert len([alert for alert in alerts if alert["source"] == "platform"]) == 1

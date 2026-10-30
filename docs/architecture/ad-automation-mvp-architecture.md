@@ -40,10 +40,20 @@ PlatformAdapter ── Mock 平台（MVP）
 
 服务端从环境变量读取平台密钥和 SPI HMAC 密钥；日志对 Authorization、签名和 token 字段脱敏。上传文件名必须经过路径安全处理，文件写入固定数据目录。`.gitignore` 排除数据库、上传目录、产物、日志、缓存和环境文件。
 
-## 6. 运行与演示
+## 6. 当前实现与限制
+
+- 当前为单进程模块化 Demo，任务使用 FastAPI `BackgroundTasks`，SQLite 与本地文件目录不适合多实例生产部署。
+- 当前仅实现 `mock` 适配器；SPI 使用 `AD_AUTOMATION_SPI_SECRET` 的 HMAC，默认 `dev-secret` 仅用于本地演示。
+- 当前没有登录、权限、多租户、真实投放请求和定时轮询；生产接入前需补齐 Pydantic 契约、鉴权、限流和审计。
+
+## 7. 运行与演示
 
 单机启动命令为 `uvicorn ad_automation.app:app --reload`。启动时创建数据目录和 SQLite 表，健康检查同时报告数据库、数据目录和 FFmpeg 可用性。演示脚本使用 mock 平台，不发起任何外部投放请求。
 
-## 7. 演进路径
+## 8. 演进路径
 
-阶段一使用内存/进程内执行器；阶段二可替换为 Redis 队列和独立 worker；阶段三把 SQLite 迁移到 PostgreSQL、素材迁移到对象存储，并为巨量引擎和快手各自实现官方文档驱动的适配器。API 和领域状态模型保持稳定。
+阶段一（当前）：素材处理、Mock 同步、SPI 幂等和告警演示。
+
+阶段二（接入稳定性）：Pydantic 请求模型、重试退避、事件审计、平台超时监控和巨量/快手官方适配器测试。
+
+阶段三（生产化）：Redis 队列与独立 worker、PostgreSQL、对象存储、鉴权与租户隔离、可观测性和部署流水线。

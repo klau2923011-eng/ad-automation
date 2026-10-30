@@ -80,6 +80,7 @@ def test_failed_job_can_be_retried(tmp_path, video_bytes):
     assert retried.status_code == 200
     assert details["status"] == "failed"
     assert details["attempts"] == 2
+    assert details["steps"][0]["status"] == "failed"
 
 
 def _valid_video(tmp_path):

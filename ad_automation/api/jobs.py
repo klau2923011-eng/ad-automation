@@ -23,16 +23,20 @@ def _execute_job(request: Request, job_id: str) -> None:
         job = session.get(ProcessingJob, job_id)
         if job is None:
             return
+        active_step: JobStep | None = None
         try:
             transition_job(job, "running")
             current = Path(session.get(Asset, job.asset_id).path)
             steps = session.scalars(select(JobStep).where(JobStep.job_id == job.id).order_by(JobStep.position)).all()
             for step in steps:
+                active_step = step
                 output = request.app.state.settings.data_dir / "outputs" / job.id / f"{step.position}.mp4"
                 process_step(current, output, step.kind, json.loads(step.params_json), request.app.state.settings.ffmpeg_path or "ffmpeg", request.app.state.settings.ffprobe_path or "ffprobe")
                 step.status = "succeeded"
                 step.output_path = str(output)
+                step.error_summary = None
                 current = output
+                active_step = None
             if steps:
                 metadata = probe_video(current) or {}
                 output_asset = Asset(id=uuid.uuid4().hex, parent_id=job.asset_id, filename=f"{job.id}.mp4", path=str(current), media_type="video/mp4", size_bytes=current.stat().st_size, sha256=sha256_file(current), perceptual_hash=perceptual_fingerprint(current), status="ready", probe_status="available", duration_seconds=metadata.get("duration_seconds"), width=metadata.get("width"), height=metadata.get("height"))
@@ -42,6 +46,9 @@ def _execute_job(request: Request, job_id: str) -> None:
         except Exception as exc:
             job.status = "failed"
             job.error_summary = str(exc)
+            if active_step is not None:
+                active_step.status = "failed"
+                active_step.error_summary = str(exc)
             create_alert(session, "job", job.id, str(exc))
         session.commit()
 
@@ -87,7 +94,8 @@ def retry_job(request: Request, background_tasks: BackgroundTasks, job_id: str) 
         if job is None:
             raise HTTPException(404, "任务不存在")
         try:
-            retry_failed_job(job)
+            steps = session.scalars(select(JobStep).where(JobStep.job_id == job.id).order_by(JobStep.position)).all()
+            retry_failed_job(job, steps)
         except ValueError as exc:
             raise HTTPException(409, str(exc)) from exc
         attempts = job.attempts
