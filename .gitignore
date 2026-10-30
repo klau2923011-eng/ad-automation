@@ -8,6 +8,7 @@ venv/
 .env.*
 !.env.example
 ad_automation_data/
+demo_data/
 *.sqlite3
 *.db
 *.log
